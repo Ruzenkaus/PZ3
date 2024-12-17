@@ -1,0 +1,27 @@
+﻿@{
+    ViewData["Title"] = "Перевірка настрою коментаря";
+}
+<link rel="stylesheet" href="/css/site.css" />
+<h1>Перевірка настрою коментаря</h1>
+
+<form method="post">
+    <label for="comment">Введіть коментар:</label><br />
+    <input type="text" id="comment" name="comment" style="width: 400px;" required /><br /><br />
+    <button type="submit">Перевірити</button>
+</form>
+
+@if (ViewBag.Comment != null)
+{
+    <hr />
+    <p><strong>Коментар:</strong> @ViewBag.Comment</p>
+    <p><strong>Результат:</strong> @ViewBag.Prediction</p>
+    <p><strong>@ViewBag.Accuracy</strong></p>
+
+    <h3>Чи правильний результат?</h3>
+    <form method="post" asp-action="Feedback">
+        <input type="hidden" name="comment" value="@ViewBag.Comment" />
+        <input type="hidden" name="prediction" value="@ViewBag.Prediction" />
+        <button type="submit" name="feedback" value="correct">✅ Правильно</button>
+        <button type="submit" name="feedback" value="incorrect">❌ Неправильно</button>
+    </form>
+}
