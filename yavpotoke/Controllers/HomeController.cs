@@ -1,14 +1,22 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.ML;
 using System.IO;
+using System.Xml.Linq;
+using yavpotoke.Trainer;
 using Yavpotoke;
 
 namespace yavpotoke.Controllers
 {
     public class HomeController : Controller
     {
+        private readonly string feedbackFilePath = "feedback.csv";
+        private readonly string modelPath = "MLModel.zip";
+
+
         [HttpGet]
         public IActionResult Index()
         {
+            ViewBag.Message = TempData["Message"];
             return View();
         }
 
@@ -30,31 +38,49 @@ namespace yavpotoke.Controllers
 
             float predictionScore = result.Score != null && result.Score.Length > 0 ? result.Score[0] : 0f;
 
-            SaveFeedback(comment, float.Parse(result.PredictedLabel), predictionScore);
             ViewBag.Comment = comment;
-            ViewBag.Prediction = Convert.ToInt32(result.PredictedLabel) == 1 ? "Позитивний настрій 😊" : "Негативний настрій 😡";
+            ViewBag.Prediction = int.Parse(result.PredictedLabel) == 1 ? "Позитивний настрій 😊" : "Негативний настрій 😡";
             ViewBag.Accuracy = $"Точність передбачення: {predictionScore:P2}";
 
             return View();
         }
 
         [HttpPost]
-        public IActionResult Feedback(string comment, int prediction, string feedback)
+        public IActionResult Retrain()
         {
-            var feedbackLine = $"{comment},{prediction},{feedback}";
-            System.IO.File.AppendAllText("feedback.csv", feedbackLine + "\n");
+            try
+            {
+                ModelTrainer.RetrainModel();
 
-            ViewBag.Message = "Дякуємо за ваш відгук!";
-
+            }
+            catch (Exception ex)
+            {
+                ViewBag.Message = $"Помилка донавчання: {ex.Message}";
+            }
             return RedirectToAction("Index");
         }
 
-        private void SaveFeedback(string comment, float prediction, float score)
+        [HttpPost]
+        public IActionResult Feedback(string comment, int feedback)
         {
-            string feedbackFilePath = "feedback.csv";
-
-            var line = $"{comment},{prediction},{score}";
+            string line = $"{comment},{feedback}";
             System.IO.File.AppendAllText(feedbackFilePath, line + "\n");
+
+            ViewBag.Message = "Дякуємо за зворотний зв'язок! Дані збережено.";
+            return RedirectToAction("Index");
+        }
+
+        [HttpGet]
+        public IActionResult FeedbackData()
+        {
+            if (!System.IO.File.Exists(feedbackFilePath))
+            {
+                return Content("Файл фідбеку порожній або відсутній.");
+            }
+
+            var lines = System.IO.File.ReadAllLines(feedbackFilePath);
+            return Content(string.Join("\n", lines));
         }
     }
+
 }
